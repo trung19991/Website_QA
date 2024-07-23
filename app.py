@@ -1,44 +1,12 @@
 from flask import Flask, request, jsonify, send_from_directory
-import torch
-from transformers import XLMRobertaTokenizerFast, XLMRobertaForQuestionAnswering
 from context_handler import ContextHandler
-import gdown
-import zipfile
 import os
-import gc
 
 app = Flask(__name__)
-
-# Link Google Drive ID của mô hình và tokenizer
-MODEL_FOLDER_ID = '1-6Dd1DNUAtHaLIoiEB5OT7eEoplhXF6Z'
-TOKENIZER_FOLDER_ID = '1-G-YgQiAQ8hcKThj9Pi6FL6VDpjujE3W'
-
-# Construct the direct download URLs for the folders
-MODEL_FOLDER_URL = f'https://drive.google.com/drive/folders/{MODEL_FOLDER_ID}'
-TOKENIZER_FOLDER_URL = f'https://drive.google.com/drive/folders/{TOKENIZER_FOLDER_ID}'
 
 # Đường dẫn lưu mô hình và tokenizer
 model_path = './model'
 tokenizer_path = './tokenizer'
-
-# Create directories if they don't exist
-os.makedirs(model_path, exist_ok=True)
-os.makedirs(tokenizer_path, exist_ok=True)
-
-# Tải mô hình và tokenizer nếu chưa có
-if not os.path.exists(f'{model_path}/pytorch_model.bin'):
-    gdown.download_folder(MODEL_FOLDER_URL, output=model_path, quiet=False, use_cookies=False)
-    gc.collect()  # Clean up memory
-
-if not os.path.exists(f'{tokenizer_path}/tokenizer.json'):
-    gdown.download_folder(TOKENIZER_FOLDER_URL, output=tokenizer_path, quiet=False, use_cookies=False)
-    gc.collect()  # Clean up memory
-
-# Load model and tokenizer from saved paths
-tokenizer = XLMRobertaTokenizerFast.from_pretrained(tokenizer_path)
-model = XLMRobertaForQuestionAnswering.from_pretrained(model_path)
-device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-model.to(device)
 
 # Load ContextHandler
 squad_path = './squad.json'
@@ -51,36 +19,8 @@ def get_prediction(question):
         if answer:
             return {'answer': answer}
         
-        # Find the best context for the question
-        context = context_handler.find_best_context(question)
-        
-        if context is None:
-            return {'answer': "No valid context found."}
-        
-        # Tokenize the input
-        inputs = tokenizer.encode_plus(question, context, return_tensors='pt', truncation=True, padding=True).to(device)
-        
-        # Get model outputs
-        outputs = model(**inputs)
-        
-        # Get the most likely beginning and end of answer with the argmax of the score
-        answer_start = torch.argmax(outputs.start_logits).item()
-        answer_end = torch.argmax(outputs.end_logits).item() + 1
-        
-        # Convert tokens to string
-        answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(inputs['input_ids'][0][answer_start:answer_end]))
-        
-        # Ensure the answer is extracted properly
-        if answer.strip() == "":
-            answer = "No answer found in the context."
-        
-        # Clean up memory
-        del inputs
-        del outputs
-        gc.collect()
-
-        # Return answer
-        return {'answer': answer}
+        # Placeholder response for now
+        return {'answer': "Model and tokenizer are temporarily disabled."}
     except Exception as e:
         print(f"Error during prediction: {e}")
         return {'answer': "Error during prediction"}
