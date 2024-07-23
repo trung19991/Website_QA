@@ -5,7 +5,7 @@ from context_handler import ContextHandler
 import gdown
 import zipfile
 import os
-import gc  # Import garbage collector
+import gc
 
 app = Flask(__name__)
 
