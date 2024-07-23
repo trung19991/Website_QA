@@ -1,26 +1,65 @@
 from flask import Flask, request, jsonify, send_from_directory
+import torch
+from transformers import XLMRobertaTokenizerFast, XLMRobertaForQuestionAnswering
 from context_handler import ContextHandler
+import gdown
+import zipfile
 import os
+import gc
 
 app = Flask(__name__)
 
-# Đường dẫn lưu mô hình và tokenizer
+MODEL_FOLDER_ID = '1-6Dd1DNUAtHaLIoiEB5OT7eEoplhXF6Z'
+TOKENIZER_FOLDER_ID = '1-G-YgQiAQ8hcKThj9Pi6FL6VDpjujE3W'
+
+MODEL_FOLDER_URL = f'https://drive.google.com/drive/folders/{MODEL_FOLDER_ID}'
+TOKENIZER_FOLDER_URL = f'https://drive.google.com/drive/folders/{TOKENIZER_FOLDER_ID}'
+
 model_path = './model'
 tokenizer_path = './tokenizer'
 
-# Load ContextHandler
+os.makedirs(model_path, exist_ok=True)
+os.makedirs(tokenizer_path, exist_ok=True)
+
+if not os.path.exists(f'{model_path}/pytorch_model.bin'):
+    gdown.download_folder(MODEL_FOLDER_URL, output=model_path, quiet=False, use_cookies=False)
+    gc.collect()
+
+if not os.path.exists(f'{tokenizer_path}/tokenizer.json'):
+    gdown.download_folder(TOKENIZER_FOLDER_URL, output=tokenizer_path, quiet=False, use_cookies=False)
+    gc.collect()
+
+tokenizer = XLMRobertaTokenizerFast.from_pretrained(tokenizer_path)
+model = XLMRobertaForQuestionAnswering.from_pretrained(model_path)
+device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+model.to(device)
+
 squad_path = './squad.json'
 context_handler = ContextHandler(squad_path)
 
 def get_prediction(question):
     try:
-        # Check if question exists in squad.json
         answer = context_handler.get_answer_if_exists(question)
         if answer:
             return {'answer': answer}
         
-        # Placeholder response for now
-        return {'answer': "Model and tokenizer are temporarily disabled."}
+        context = context_handler.find_best_context(question)
+        if context is None:
+            return {'answer': "No valid context found."}
+        
+        inputs = tokenizer.encode_plus(question, context, return_tensors='pt', truncation=True, padding=True).to(device)
+        outputs = model(**inputs)
+        answer_start = torch.argmax(outputs.start_logits).item()
+        answer_end = torch.argmax(outputs.end_logits).item() + 1
+        answer = tokenizer.convert_tokens_to_string(tokenizer.convert_ids_to_tokens(inputs['input_ids'][0][answer_start:answer_end]))
+
+        if answer.strip() == "":
+            answer = "No answer found in the context."
+        
+        del inputs
+        del outputs
+        gc.collect()
+        return {'answer': answer}
     except Exception as e:
         print(f"Error during prediction: {e}")
         return {'answer': "Error during prediction"}
