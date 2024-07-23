@@ -9,8 +9,8 @@ import os
 app = Flask(__name__)
 
 # Link Google Drive ID của mô hình và tokenizer
-MODEL_URL = 'https://drive.google.com/drive/folders/1-6Dd1DNUAtHaLIoiEB5OT7eEoplhXF6Z?usp=sharing'
-TOKENIZER_URL = 'https://drive.google.com/drive/folders/1-G-YgQiAQ8hcKThj9Pi6FL6VDpjujE3W?usp=sharing'
+MODEL_URL = 'https://drive.google.com/drive/u/0/folders/1-6Dd1DNUAtHaLIoiEB5OT7eEoplhXF6Z'
+TOKENIZER_URL = 'https://drive.google.com/drive/u/0/folders/1-G-YgQiAQ8hcKThj9Pi6FL6VDpjujE3W'
 
 # Đường dẫn lưu mô hình và tokenizer
 model_path = './model'
