@@ -5,6 +5,7 @@ from context_handler import ContextHandler
 import gdown
 import zipfile
 import os
+import gc  # Import garbage collector
 
 app = Flask(__name__)
 
@@ -27,9 +28,11 @@ os.makedirs(tokenizer_path, exist_ok=True)
 # Tải mô hình và tokenizer nếu chưa có
 if not os.path.exists(f'{model_path}/pytorch_model.bin'):
     gdown.download_folder(MODEL_FOLDER_URL, output=model_path, quiet=False, use_cookies=False)
+    gc.collect()  # Clean up memory
 
 if not os.path.exists(f'{tokenizer_path}/tokenizer.json'):
     gdown.download_folder(TOKENIZER_FOLDER_URL, output=tokenizer_path, quiet=False, use_cookies=False)
+    gc.collect()  # Clean up memory
 
 # Load model and tokenizer from saved paths
 tokenizer = XLMRobertaTokenizerFast.from_pretrained(tokenizer_path)
@@ -71,6 +74,11 @@ def get_prediction(question):
         if answer.strip() == "":
             answer = "No answer found in the context."
         
+        # Clean up memory
+        del inputs
+        del outputs
+        gc.collect()
+
         # Return answer
         return {'answer': answer}
     except Exception as e:
@@ -115,4 +123,3 @@ def similar_questions():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
-
