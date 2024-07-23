@@ -9,21 +9,27 @@ import os
 app = Flask(__name__)
 
 # Link Google Drive ID của mô hình và tokenizer
-MODEL_URL = 'https://drive.google.com/drive/u/0/folders/1-6Dd1DNUAtHaLIoiEB5OT7eEoplhXF6Z'
-TOKENIZER_URL = 'https://drive.google.com/drive/u/0/folders/1-G-YgQiAQ8hcKThj9Pi6FL6VDpjujE3W'
+MODEL_FOLDER_ID = '1-6Dd1DNUAtHaLIoiEB5OT7eEoplhXF6Z'
+TOKENIZER_FOLDER_ID = '1-G-YgQiAQ8hcKThj9Pi6FL6VDpjujE3W'
+
+# Construct the direct download URLs for the folders
+MODEL_FOLDER_URL = f'https://drive.google.com/drive/folders/{MODEL_FOLDER_ID}'
+TOKENIZER_FOLDER_URL = f'https://drive.google.com/drive/folders/{TOKENIZER_FOLDER_ID}'
 
 # Đường dẫn lưu mô hình và tokenizer
 model_path = './model'
 tokenizer_path = './tokenizer'
 
+# Create directories if they don't exist
+os.makedirs(model_path, exist_ok=True)
+os.makedirs(tokenizer_path, exist_ok=True)
+
 # Tải mô hình và tokenizer nếu chưa có
 if not os.path.exists(f'{model_path}/pytorch_model.bin'):
-    gdown.download(MODEL_URL, f'{model_path}/pytorch_model.bin', quiet=False)
+    gdown.download_folder(MODEL_FOLDER_URL, output=model_path, quiet=False, use_cookies=False)
 
 if not os.path.exists(f'{tokenizer_path}/tokenizer.json'):
-    gdown.download(TOKENIZER_URL, f'{tokenizer_path}/tokenizer.zip', quiet=False)
-    with zipfile.ZipFile(f'{tokenizer_path}/tokenizer.zip', 'r') as zip_ref:
-        zip_ref.extractall(tokenizer_path)
+    gdown.download_folder(TOKENIZER_FOLDER_URL, output=tokenizer_path, quiet=False, use_cookies=False)
 
 # Load model and tokenizer from saved paths
 tokenizer = XLMRobertaTokenizerFast.from_pretrained(tokenizer_path)
